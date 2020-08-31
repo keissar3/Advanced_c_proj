@@ -2,6 +2,9 @@
 #include <stdio.h>
 void main()
 {
-printf("Hello World!");
-printf("Hayush");
+	for (int i = 0; i < 5; i++) {
+		printf("Hello World!");
+		printf("Hayush");
+	}
+
 }
