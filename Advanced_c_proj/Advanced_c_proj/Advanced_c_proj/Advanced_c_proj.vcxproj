@@ -139,7 +139,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="grayImage.c" />
+    <ClCompile Include="imgPosCell.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="utility.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="grayImage.h" />
+    <ClInclude Include="imgPosCell.h" />
+    <ClInclude Include="segment.h" />
+    <ClInclude Include="utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

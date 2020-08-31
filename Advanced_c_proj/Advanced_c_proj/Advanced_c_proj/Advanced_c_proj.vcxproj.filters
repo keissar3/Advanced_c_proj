@@ -18,5 +18,28 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="grayImage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="imgPosCell.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utility.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="grayImage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="imgPosCell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="segment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
