@@ -6,7 +6,3 @@ typedef struct _imgPosCell { /*linked list to store all pixel's locations in a s
 	struct _imgPosCell* prev;
 }imgPosCell;
 
-typedef struct _imgPosCellList { /**/
-	struct _imgPosCell* head;
-	int size;
-}imgPosCellList;
