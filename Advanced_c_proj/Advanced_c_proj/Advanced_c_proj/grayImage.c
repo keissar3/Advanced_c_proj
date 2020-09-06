@@ -124,31 +124,35 @@ Segment* getKernelSegment(Segment* seg, grayImage* booleanImage, grayImage img, 
 	Segment* res = (Segment*)malloc(sizeof(Segment));
 	checkMalloc(res);
 	res->root = createTreeNode(kernel);
-	getKernelSegmentAUX(res->root, booleanImage, img, kernelColor, threshold,&treeCount);
+	getKernelSegmentAUX(res->root, booleanImage, img, kernelColor, threshold, &treeCount);
 	res->size = treeCount;
 	return res;
 }
-void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayImage img, unsigned char kernelColor, unsigned char threshold,int* treeCount)
+void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayImage img, unsigned char kernelColor, unsigned char threshold, int* treeCount)
 {
-	int i,rootNeighbors = 0;
+	int i, j, rootNeighbors = 0;
 	*treeCount++;
-	//TODO - LINE 136 TO 144 ONLY CHECK ONE NEIGHBOUR, WE NEED TO CHECK ALL 8 NEIGHBOURS SURROUNDING THE ROOT {-1,-1,-1,0...}
-	imgPos currPos = { root->position[0]+1,root->position[1]+1};
-	if (isPixelInImgBoundaries(img, currPos))
-		if(isPixelInTree(*booleanImage, currPos)==NOT_FOUND)
-			if (isColorWithInThreshold(kernelColor, img.pixles[root->position[0]][root->position[1]], threshold))
-			{
-				rootNeighbors++;
-				root->similar_neighbors[rootNeighbors] = createTreeNode(currPos);
-				markPixelInBooleanImage(booleanImage, currPos);
-			}
-	 char ** temp = (unsigned char**)realloc(root->similar_neighbors, ((rootNeighbors) *sizeof(unsigned char*))+1);
-	 if (temp == NULL)
-		 exit(MEMORY_ALLOCATION_FAILED);
-	 root->similar_neighbors = temp;
-	 
-	for(int i=0;i<rootNeighbors;i++)
-		getKernelSegmentAUX(root->similar_neighbors[i],booleanImage,img,kernelColor,threshold,treeCount);
+	for (i = -1; i <= 1; i++)
+		for (j = -1; j <= 1; j++) {
+			if (j == 0 && i == 0)
+				continue;
+			imgPos currPos = { root->position[0] + i,root->position[1] + j };
+			if (isPixelInImgBoundaries(img, currPos))
+				if (isPixelInTree(*booleanImage, currPos) == NOT_FOUND)
+					if (isColorWithInThreshold(kernelColor, img.pixles[root->position[0]][root->position[1]], threshold))
+					{
+						rootNeighbors++;
+						root->similar_neighbors[rootNeighbors] = createTreeNode(currPos);
+						markPixelInBooleanImage(booleanImage, currPos);
+					}
+		}
+	char** temp = (unsigned char**)realloc(root->similar_neighbors, ((rootNeighbors) * sizeof(unsigned char*)) + 1);
+	if (temp == NULL)
+		exit(MEMORY_ALLOCATION_FAILED);
+	root->similar_neighbors = temp;
+
+	for (int i = 0; i < rootNeighbors; i++)
+		getKernelSegmentAUX(root->similar_neighbors[i], booleanImage, img, kernelColor, threshold, treeCount);
 }
 
 /*--------------------------------------------------------------solution to q1 end*/
