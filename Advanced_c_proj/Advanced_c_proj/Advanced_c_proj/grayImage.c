@@ -46,7 +46,6 @@ void insertRandomValues(grayImage* img)
 }
 
 
-
 /*--------------------------------------------------------------functions related to testing end*/
 
 
@@ -61,10 +60,15 @@ Segment* findSingleSegment(grayImage* img, imgPos kernel, unsigned char threshol
 {
 	grayImage* booleanImage = (grayImage*)malloc(sizeof(grayImage));
 	checkMalloc(booleanImage); // free malloc?
-	initImage(&booleanImage);
-	setMatrixValuesToZero(&booleanImage);
-
-
+	Segment* res = (Segment*)malloc(sizeof(Segment));
+	checkMalloc(res);
+	booleanImage->cols = img->cols;
+	booleanImage->rows = img ->rows;
+	initImage(booleanImage);
+	setMatrixValuesToZero(booleanImage);
+	unsigned char kernelColor = img->pixles[kernel[0]][kernel[1]];
+	getKernelSegment(res, booleanImage, *img, kernel, kernelColor, threshold);
+	return res;	//
 }
 
 void setMatrixValuesToZero(grayImage* img)
@@ -109,41 +113,43 @@ treeNode* createTreeNode(imgPos positionToAdd)
 	checkMalloc(res);
 	res->position[0] = positionToAdd[0];
 	res->position[1] = positionToAdd[1];
+	res->similar_neighbors = (treeNode**)malloc(((MAX_NEIGHBORS+1)* sizeof(treeNode*)));
 	for (i = 0; i < MAX_NEIGHBORS + 1; i++)
-	{
-		res->similar_neighbors[i] = (treeNode*)malloc(sizeof(treeNode));
-		checkMalloc(res->similar_neighbors[i]);
-		res->similar_neighbors = NULL;
-	}
+		res->similar_neighbors[i] = NULL;
+	
+	return res;
 }
 
 
-Segment* getKernelSegment(Segment* seg, grayImage* booleanImage, grayImage img, imgPos kernel, unsigned char kernelColor, unsigned char threshold)
+void getKernelSegment(Segment* seg, grayImage* booleanImage, grayImage img, imgPos kernel, unsigned char kernelColor, unsigned char threshold)
 {
-	int treeCount = 1;
-	Segment* res = (Segment*)malloc(sizeof(Segment));
-	checkMalloc(res);
-	res->root = createTreeNode(kernel);
-	getKernelSegmentAUX(res->root, booleanImage, img, kernelColor, threshold, &treeCount);
-	res->size = treeCount;
-	return res;
+	int treeCount = 0;
+	seg->root = createTreeNode(kernel);
+	markPixelInBooleanImage(booleanImage, kernel);
+	printf("(%d,%d) at color (%d) is added to tree \n", seg->root->position[0], seg->root->position[1], img.pixles[seg->root->position[0]][seg->root->position[1]]); //TODO Delete this line
+	getKernelSegmentAUX(seg->root, booleanImage, img, kernelColor, threshold, &treeCount);
+	seg->size = treeCount;
+	
 }
 void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayImage img, unsigned char kernelColor, unsigned char threshold, int* treeCount)
 {
 	int i, j, rootNeighbors = 0;
-	*treeCount++;
+	imgPos currPos;
+	(*treeCount)++;
 	for (i = -1; i <= 1; i++)
 		for (j = -1; j <= 1; j++) {
 			if (j == 0 && i == 0)
 				continue;
-			imgPos currPos = { root->position[0] + i,root->position[1] + j };
+			currPos[0] = root->position[0] + i;
+			currPos[1] = root->position[1] + j ;
 			if (isPixelInImgBoundaries(img, currPos))
 				if (isPixelInTree(*booleanImage, currPos) == NOT_FOUND)
-					if (isColorWithInThreshold(kernelColor, img.pixles[root->position[0]][root->position[1]], threshold))
+					if (isColorWithInThreshold(kernelColor, img.pixles[currPos[0]][currPos[1]], threshold))
 					{
-						rootNeighbors++;
+						printf("(%d,%d) at color (%d) is added to tree \n",currPos[0], currPos[1], img.pixles[currPos[0]][currPos[1]]); //TODO Delete this line
 						root->similar_neighbors[rootNeighbors] = createTreeNode(currPos);
 						markPixelInBooleanImage(booleanImage, currPos);
+						rootNeighbors++;
 					}
 		}
 	char** temp = (unsigned char**)realloc(root->similar_neighbors, ((rootNeighbors) * sizeof(unsigned char*)) + 1);
