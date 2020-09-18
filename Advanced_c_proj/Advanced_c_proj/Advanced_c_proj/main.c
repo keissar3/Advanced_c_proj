@@ -6,15 +6,17 @@
 void main() {
 
 	grayImage testimage; /*creating a test image*/
-	testimage.cols = testimage.rows = 5; /* a four by four matrix with random numbers with low value for debugging purposes*/
+	testimage.cols = testimage.rows = 10; /* a four by four matrix with random numbers with low value for debugging purposes*/
 	initImage(&testimage);
 	insertRandomValues(&testimage);
 	printImage(testimage);
 
+
+
 	//testing q1
 	imgPos kernel;
-	kernel[0] = 0;
-	kernel[1] = 4;
+	kernel[0] = 2;
+	kernel[1] = 2;
 	unsigned char threshold = 1;
 	Segment* test = findSingleSegment(&testimage, kernel,threshold);
 	//testing q1
