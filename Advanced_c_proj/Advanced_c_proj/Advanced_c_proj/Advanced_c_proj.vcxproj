@@ -142,6 +142,7 @@
     <ClCompile Include="grayImage.c" />
     <ClCompile Include="imgPosCell.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="segment.c" />
     <ClCompile Include="utility.c" />
   </ItemGroup>
   <ItemGroup>

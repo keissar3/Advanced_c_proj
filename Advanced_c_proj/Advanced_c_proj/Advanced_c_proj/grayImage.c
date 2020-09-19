@@ -26,17 +26,18 @@ static colorSingleSegment(grayImage* imgToColor, imgPosCell* currImgPosCell, uns
 
 
 
+/***** Function Implementation *****/
 
 /*--------------------------------------------------------------functions related to testing start*/
 void initImage(grayImage* img)
 {
 	int j, i;
 	img->pixles = (unsigned char**)malloc(img->rows * sizeof(unsigned char*));
-	checkMalloc(img->pixles); // free malloc?
+	checkMalloc(img->pixles); 
 	for (i = 0; i < img->rows; i++)
 	{
 		(img->pixles)[i] = (unsigned char*)malloc(img->cols * sizeof(unsigned char));
-		checkMalloc((img->pixles)[i]);// free malloc? 
+		checkMalloc((img->pixles)[i]);
 	}
 
 
@@ -73,21 +74,32 @@ void insertRandomValues(grayImage* img)
 
 /*--------------------------------------------------------------solution to q1 start*/
 
+
+/* GENERAL*/
+void freeImg(grayImage* img) {
+	int i;
+	for (i = 0; i < img->rows; i++)
+	{
+		free((img->pixles)[i]);
+	}
+	free(img->pixles);
+}
+
+
 //NOTES ! TODO - AFTER Q1 IF FULLY SOLVED MOVE THE FUNCTION AND THEIR DECLERATION TO THE BEST MATCH .C AND .H FILES .
 Segment* findSingleSegment(grayImage* img, imgPos kernel, unsigned char threshold)
 {
 	unsigned char kernelColor;
 	kernelColor = img->pixles[kernel[0]][kernel[1]];
 	grayImage booleanImage;
-	Segment* res = (Segment*)malloc(sizeof(Segment));
+	Segment* res = (Segment*)malloc(sizeof(Segment)); //free in main, because main calls this func and gets back 'res'
 	checkMalloc(res);
 	booleanImage.cols = img->cols;
 	booleanImage.rows = img->rows;
 	initImage(&booleanImage);
 	setMatrixValuesToZero(&booleanImage);
 	getKernelSegment(res, &booleanImage, *img, kernel, kernelColor, threshold);
-
-	//TODO create free image func and use it here for bolleanImage/ 
+	freeImg(&booleanImage);
 	return res;
 }
 
@@ -125,20 +137,7 @@ static void markPixelInBooleanImage(grayImage* booleanImage, imgPos positionToMa
 
 }
 
-treeNode* createTreeNode(imgPos positionToAdd)
-{
-	int i;
-	treeNode* res = (treeNode*)malloc(sizeof(treeNode));
-	checkMalloc(res);
-	res->position[0] = positionToAdd[0];
-	res->position[1] = positionToAdd[1];
-	res->similar_neighbors = (treeNode**)malloc(((MAX_NEIGHBORS + 1) * sizeof(treeNode*)));
-	checkMalloc(res->similar_neighbors);
-	for (i = 0; i < MAX_NEIGHBORS + 1; i++)
-		res->similar_neighbors[i] = NULL;
 
-	return res;
-}
 
 
 static void getKernelSegment(Segment* seg, grayImage* booleanImage, grayImage img, imgPos kernel, unsigned char kernelColor, unsigned char threshold)
@@ -189,7 +188,6 @@ static void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayIma
 //rita
 unsigned int findAllSegments(grayImage* img, unsigned char threshold, imgPosCell*** segments)
 {
-
 
 }
 

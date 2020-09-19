@@ -6,3 +6,5 @@ typedef struct _imgPosCell { /*linked list to store all pixel's locations in a s
 	struct _imgPosCell* prev;
 }imgPosCell;
 
+/***** FUNCTION PROTOTYPES *****/
+

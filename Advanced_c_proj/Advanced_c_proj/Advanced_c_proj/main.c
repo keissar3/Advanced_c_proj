@@ -2,6 +2,7 @@
 #include "grayImage.h"
 #include "imgPosCell.h"
 #include "segment.h"
+#include "utility.h"
 #include <stdlib.h>
 void main() {
 
@@ -19,6 +20,8 @@ void main() {
 	kernel[1] = 2;
 	unsigned char threshold = 1;
 	Segment* test = findSingleSegment(&testimage, kernel,threshold);
+	//TODO create a func to free 'test' -freeSegment func
+
 	//testing q1
 
 	/*-----testing q3 start - seems to be working :)*/
