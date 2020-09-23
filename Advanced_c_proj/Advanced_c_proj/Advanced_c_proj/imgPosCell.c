@@ -7,9 +7,34 @@
 #include "segment.h"
 
 /***** Function Implementation *****/
+void freeImgPosCell(imgPosCell*** segments, int size)
+{
+	int i;
+	imgPosCell* curr;
+	imgPosCell* prev = NULL;
+	for (i = 0; i < size; i++)
+	{
+		curr = (*segments)[i];
+		prev = NULL;
+		while (curr)
+		{
+			prev = curr;
+			curr = curr->next;
+			free(prev);
+		}
+
+	}
+	free(*segments);
+
+
+}
+
+
+
 imgPosCell* creatImgPosCellNode(imgPos positionToAdd) {
 	imgPosCell* res;
 	res = (imgPosCell*)malloc(sizeof(imgPosCell));
+	checkMalloc(res);
 	res->position[0] = positionToAdd[0];
 	res->position[1] = positionToAdd[1];
 	res->next = res->prev = NULL;

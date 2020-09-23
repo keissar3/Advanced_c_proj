@@ -14,3 +14,12 @@ void checkMalloc(void* pointer)
 	}
 }
 
+
+void checkFileOpen(void* ptr)
+{
+	if (!ptr)
+	{
+		printf("Failed to open file");
+		exit(FILE_OPEN_FAILED);
+	}
+}

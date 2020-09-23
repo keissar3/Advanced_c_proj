@@ -12,3 +12,4 @@ imgPosCell* creatImgPosCellNode(imgPos positionToAdd);
 imgPosCell* findPlaceToInsert(imgPosCell* list, imgPos position);
 void addToBeginningOfList(imgPosCell** list, imgPosCell* node_to_add);
 void addToInnerPlaceInList(imgPosCell* prev, imgPosCell* node_to_add);
+void freeImgPosCell(imgPosCell*** segments, int size);

@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -6,6 +8,8 @@
 #include "imgPosCell.h"
 #include "segment.h"
 #include <math.h>
+
+
 
 /*q1 prototypes start--------------------- */
 static void setMatrixValuesToZero(grayImage* img);/*set the entire matrix values to zero*/
@@ -236,7 +240,7 @@ unsigned int findAllSegments(grayImage* img, unsigned char threshold, imgPosCell
 	qsort(helper, numOfSegments, sizeof(Segment*), (&compare)); /*sorts the array of pointers to segments*/
 	insertSegmentToList(helper, numOfSegments, segments);
 	freePixels(&booleanImage);
-	free(helper);
+	//TODO SEGEMNTS AND THEIR CONTENT IN HELPER NEED TO BE FREE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	return numOfSegments;
 }
 
@@ -347,7 +351,6 @@ grayImage* colorSegments(grayImage* img, imgPosCell** segments, unsigned int siz
 		segmentColor = getShadeOfGray(i, size);
 		colorSingleSegment(coloredImage, segments[i], segmentColor);
 	}
-	printImage(*coloredImage);
 	return coloredImage;
 }
 
@@ -365,3 +368,106 @@ static unsigned char getShadeOfGray(int i, int numberOfSegments)
 	return (i * (255 / numberOfSegments - 1));
 }
 /*--------------------------------------------------------------solution to q3 end*/
+
+/*--------------------------------------------------------------solution to q4 Start*/
+
+void doubleStringSize(char** string, int* size)
+{
+	*size = (*size) * 2 + 1;
+	*string = (char*)realloc(*string, (*size) * sizeof(char));
+	checkMalloc(*string);
+
+}
+
+char* getLineFromPGM(FILE* fptr_in)
+{
+	BOOL lineWasComment = FALSE;
+	char* line_read = (char*)malloc(sizeof(char) * 0);
+	checkMalloc(line_read);
+	int logicSize = 0, physicalSize = 0;
+	char c = fgetc(fptr_in);
+	do
+	{
+		if (lineWasComment)
+		{
+			free(line_read);
+			logicSize = physicalSize = 0;
+			c = fgetc(fptr_in);
+			line_read = (char*)malloc(sizeof(char) * 0);
+			checkMalloc(line_read);
+
+		}
+		while (c != '\n')
+		{
+			if (logicSize == physicalSize)
+				doubleStringSize(&line_read, &physicalSize);
+			line_read[logicSize] = c;
+			logicSize++;
+			c = fgetc(fptr_in);
+		}
+		line_read = (char*)realloc(line_read, (logicSize + 1) * sizeof(char));
+		checkMalloc(line_read);
+		line_read[logicSize] = '\0';
+		if (line_read[0] == '#')
+			lineWasComment = TRUE;
+		else
+			lineWasComment = FALSE;
+	} while (lineWasComment);
+	return line_read;
+}
+
+grayImage* readPGM(char* fname)
+{
+	int logicSize = 0, phisicallSize = 0, rows, cols, max_color, i, j, num;
+	grayImage* uploaded_image = (grayImage*)malloc(sizeof(grayImage));
+	checkMalloc(uploaded_image);
+	FILE* fptr_in;
+	fptr_in = fopen(fname, "r");
+	checkFileOpen(fptr_in);
+	read_PGM_info(fptr_in, &rows, &cols, &max_color);
+	uploaded_image->rows = rows, uploaded_image->cols = cols;
+	uploaded_image->pixles = (unsigned char**)malloc(sizeof(unsigned char*) * (rows));
+	checkMalloc(uploaded_image->pixles);
+	for (i = 0; i < rows; i++)
+	{
+		uploaded_image->pixles[i] = (unsigned char*)malloc(sizeof(unsigned char) * (cols));
+		checkMalloc(uploaded_image->pixles[i]);
+	}
+	for (i = 0; i < rows; i++)
+		for (j = 0; j < cols; j++)
+		{
+			fscanf(fptr_in, "%d", &num);
+			uploaded_image->pixles[i][j] = (unsigned char)num;
+		}
+	fclose(fptr_in);
+	return uploaded_image;
+}
+
+
+void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color)
+{
+	char* temp_line;
+	temp_line = getLineFromPGM(fptr_in);
+	if (strcmp(temp_line, "P2") != 0)
+	{
+		printf("Not a P2 file");
+		exit(NOT_P2_PGM);
+	}
+	free(temp_line);
+	temp_line = getLineFromPGM(fptr_in);
+
+	if (sscanf(temp_line, "%d %d", cols, rows) != 2)
+	{
+		printf("Failed reading image cols and rows sizes");
+		exit(COLS_ROWS_WRONG_INFO);
+	}
+	free(temp_line);
+	temp_line = getLineFromPGM(fptr_in);
+	if (sscanf(temp_line, "%d", max_color) != 1)//TODO /* what is the use of this value */
+	{
+		printf("MAX color reading failed ");
+		exit(MAX_COLOR_INCORRECT);
+	}
+	free(temp_line);
+}
+/*--------------------------------------------------------------solution to q4 end*/

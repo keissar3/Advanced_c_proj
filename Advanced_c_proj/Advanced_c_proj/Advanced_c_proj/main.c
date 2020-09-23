@@ -18,7 +18,7 @@ void main() {
 	imgPos kernel;
 	kernel[0] = 2;
 	kernel[1] = 2;
-	unsigned char threshold = 1;
+	unsigned char threshold = 0;
 	Segment* test = findSingleSegment(&testimage, kernel,threshold);
 	//TODO create a func to free 'test' -freeSegment func
 
@@ -26,14 +26,34 @@ void main() {
 
 
 	/*testing q2*/
-	imgPosCell** segments;
-	int n = findAllSegments(&testimage, threshold, &segments);
+	//imgPosCell** segments;
+	//int n = findAllSegments(&testimage, threshold, &segments);
 	/*testing q2 end*/
 
 	/*-----testing q3 start - seems to be working :)*/
-
-	printImage(*(colorSegments(&testimage, segments,n)));
+	//	printImage(*(colorSegments(&testimage, segments,n)));
 	/*-----testing q3 end*/
 
+	/*testing q4*/
+	grayImage* uploaded_image = readPGM("hi.pgm");
+	//printImage(*uploaded_image);
+
+
+
+	imgPosCell** segments;
+	int n = findAllSegments(uploaded_image, threshold, &segments);
+	printImage(*(colorSegments(uploaded_image, segments, n)));
+	freeImg(&uploaded_image);
+	/*testing q4*/
+
+
+
+
+
+
+
+	
+	freeImgPosCell(&segments,n);
+	freePixels(&testimage);
 
 }

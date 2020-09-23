@@ -1,5 +1,9 @@
 #pragma once
 #define MAX_NEIGHBORS 8
+#define FILE_OPEN_FAILED -1 
+#define NOT_P2_PGM -1 
+#define COLS_ROWS_WRONG_INFO -1
+#define MAX_COLOR_INCORRECT -1
 
 typedef unsigned short imgPos[2];
 
@@ -18,3 +22,6 @@ typedef struct _Segment {
 /***** FUNCTION PROTOTYPES *****/
 treeNode* createTreeNode(imgPos positionToAdd); /*Create a tree node with provided position and an
 												array of 8 treenode pointers*/
+
+void checkFileOpen(void* ptr);/*check File Open*/
+
