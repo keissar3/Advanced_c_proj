@@ -17,6 +17,16 @@ static BOOL isColorWithInThreshold(unsigned char kerenelColor, unsigned char col
 static BOOL isPixelInImgBoundaries(grayImage img, imgPos positionToCheck);/*check if a position is within boundaries of the image*/
 /*q1 prototypes end--------------------- */
 
+/*q2 prototypes start---------------------*/
+static imgPos* findTmpMin(grayImage img, grayImage booleanImg);
+static int doesBooleanImageHaveZero(grayImage booleanImg); /*return 1 if there are pixels that are 0. else, return 0*/
+static void booleanImageInitialization(grayImage* img, grayImage* booleanImage);
+static void doubleArrSize(Segment*** arr, int* currentCapacity);
+static int compare(const void* seg1, const void* seg2);
+static void insertSegmentToList(Segment** seg_arr, int seg_arr_size, imgPosCell*** segments);
+static void insertSegmentToListAux(treeNode* root, imgPosCell** segments);
+static void addToList(imgPosCell* node_to_add, imgPosCell** segments);
+/*q2 prototypes end--------------------- */
 
 
 /*q3 prototypes start--------------------- */
@@ -31,9 +41,9 @@ static colorSingleSegment(grayImage* imgToColor, imgPosCell* currImgPosCell, uns
 /*--------------------------------------------------------------functions related to testing start*/
 void initImage(grayImage* img)
 {
-	int j, i;
+	int i;
 	img->pixles = (unsigned char**)malloc(img->rows * sizeof(unsigned char*));
-	checkMalloc(img->pixles); 
+	checkMalloc(img->pixles);
 	for (i = 0; i < img->rows; i++)
 	{
 		(img->pixles)[i] = (unsigned char*)malloc(img->cols * sizeof(unsigned char));
@@ -51,7 +61,7 @@ void printImage(grayImage img)/*printing an image for testing puposes*/
 	for (i = 0; i < img.rows; i++)
 	{
 		for (j = 0; j < img.cols; j++)
-			printf("%2d ", img.pixles[i][j]);
+			printf("%4d ", img.pixles[i][j]);
 		putchar('\n');
 	}
 	printf("_______________________________________________________________________________\n\n");
@@ -67,6 +77,27 @@ void insertRandomValues(grayImage* img)
 
 /*--------------------------------------------------------------functions related to testing end*/
 
+/* GENERAL*/
+void freePixels(grayImage* img) {
+	int i;
+	for (i = 0; i < img->rows; i++)
+	{
+		free((img->pixles[i]));
+	}
+	free(img->pixles);
+}
+
+void freeImg(grayImage** img) {
+	int i;
+	for (i = 0; i < (*img)->rows; i++)
+	{
+		free(((*img)->pixles[i]));
+	}
+	free((*img)->pixles);
+	free(*img);
+}
+
+
 
 
 
@@ -75,15 +106,7 @@ void insertRandomValues(grayImage* img)
 /*--------------------------------------------------------------solution to q1 start*/
 
 
-/* GENERAL*/
-void freeImg(grayImage* img) {
-	int i;
-	for (i = 0; i < img->rows; i++)
-	{
-		free((img->pixles)[i]);
-	}
-	free(img->pixles);
-}
+
 
 
 //NOTES ! TODO - AFTER Q1 IF FULLY SOLVED MOVE THE FUNCTION AND THEIR DECLERATION TO THE BEST MATCH .C AND .H FILES .
@@ -94,12 +117,18 @@ Segment* findSingleSegment(grayImage* img, imgPos kernel, unsigned char threshol
 	grayImage booleanImage;
 	Segment* res = (Segment*)malloc(sizeof(Segment)); //free in main, because main calls this func and gets back 'res'
 	checkMalloc(res);
-	booleanImage.cols = img->cols;
-	booleanImage.rows = img->rows;
-	initImage(&booleanImage);
-	setMatrixValuesToZero(&booleanImage);
+	booleanImageInitialization(img, &booleanImage);
 	getKernelSegment(res, &booleanImage, *img, kernel, kernelColor, threshold);
-	freeImg(&booleanImage);
+	freePixels(&booleanImage);
+	return res;
+}
+
+Segment* findSingleSegmentByTable(grayImage* img, imgPos kernel, unsigned char threshold, grayImage* booleanImage) {
+	unsigned char kernelColor;
+	kernelColor = img->pixles[kernel[0]][kernel[1]];
+	Segment* res = (Segment*)malloc(sizeof(Segment)); //free
+	checkMalloc(res);
+	getKernelSegment(res, booleanImage, *img, kernel, kernelColor, threshold);
 	return res;
 }
 
@@ -171,7 +200,7 @@ static void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayIma
 						rootNeighbors++;
 					}
 		}
-	char** temp = (unsigned char**)realloc(root->similar_neighbors, ((rootNeighbors+2) * sizeof(unsigned char*)));
+	char** temp = (unsigned char**)realloc(root->similar_neighbors, ((rootNeighbors + 2) * sizeof(unsigned char*)));
 	if (temp == NULL)
 		exit(MEMORY_ALLOCATION_FAILED);
 	root->similar_neighbors = temp;
@@ -182,18 +211,125 @@ static void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayIma
 
 /*--------------------------------------------------------------solution to q1 end*/
 
-//main:
-//imgposcell** segments
-//findAllSegments (                                                                 &segments)
-//rita
+
+/*--------------------------------------------------------------solution to q2 start*/
 unsigned int findAllSegments(grayImage* img, unsigned char threshold, imgPosCell*** segments)
 {
+	Segment** helper;  /*an array of pointers to segment, will hold the different segments we will find in img, before their
+					 insertation to 'segments', array of imgPossCell*/
+	grayImage booleanImage;  /*will help us to know which pixels are allready in a certain segment*/
+	booleanImageInitialization(img, &booleanImage); /*initializes booleanImage to zeros and updates the rows and cols according
+													to img rows and cols*/
+	int currentCapacity, numOfSegments;
+	currentCapacity = numOfSegments = 0;
+	helper = NULL;
+	while (doesBooleanImageHaveZero(booleanImage) == TRUE) {
+		imgPos* tmpMin = findTmpMin(*img, booleanImage);
+		if (currentCapacity == numOfSegments)
+			doubleArrSize(&helper, &currentCapacity); /*resizing of needed*/
+		helper[numOfSegments] = findSingleSegmentByTable(img, *tmpMin, threshold, &booleanImage);
+		numOfSegments++;
+		free(tmpMin);
+	}
+	helper = (Segment**)realloc(helper, numOfSegments * sizeof(Segment));
+	checkMalloc(helper);
+	qsort(helper, numOfSegments, sizeof(Segment*), (&compare)); /*sorts the array of pointers to segments*/
+	insertSegmentToList(helper, numOfSegments, segments);
+	freePixels(&booleanImage);
+	free(helper);
+	return numOfSegments;
+}
 
+static void insertSegmentToList(Segment** seg_arr, int seg_arr_size, imgPosCell*** segments) {
+	int i;
+	*segments = (imgPosCell**)malloc(seg_arr_size * sizeof(imgPosCell*));
+	checkMalloc(*segments);
+	for (i = 0; i < seg_arr_size; i++)
+	{
+		(*segments)[i] = NULL;
+		if (seg_arr[i]->root != NULL) {
+			insertSegmentToListAux(seg_arr[i]->root, &((*segments)[i]));
+		}
+	
+	}
+}
+
+static void insertSegmentToListAux(treeNode* root, imgPosCell** segments) {
+	int i = 0, root_neighbors = 0;
+	imgPosCell* new_node = creatImgPosCellNode(root->position);
+	addToList(new_node, segments);
+
+	while (root->similar_neighbors[i] != NULL)
+	{
+		insertSegmentToListAux(root->similar_neighbors[i], segments);
+		i++;
+	}
+
+}
+
+static void addToList(imgPosCell* node_to_add, imgPosCell** segments) {
+	if (*segments == NULL) {
+		*segments = node_to_add;
+	}
+	else {
+		imgPosCell* p = findPlaceToInsert(*segments, node_to_add->position);
+		if (p == NULL)
+			addToBeginningOfList(segments, node_to_add);
+		else
+			addToInnerPlaceInList(p, node_to_add);
+	}
+}
+
+static int compare(const void* seg1, const void* seg2) {
+	Segment* seg1P = *((Segment**)(seg1));
+	Segment* seg2P = *((Segment**)(seg2));
+	return seg2P->size - seg1P->size;
+}
+
+static void doubleArrSize(Segment*** arr, int* currentCapacity) {
+	*currentCapacity = (*currentCapacity) * 2 + 1;
+	*arr = (Segment**)realloc(*arr, (*currentCapacity) * sizeof(Segment*));
+	checkMalloc(*arr);
+}
+
+static int doesBooleanImageHaveZero(grayImage booleanImg) {
+	int i, j;
+	for (i = 0; i < booleanImg.rows; i++)
+		for (j = 0; j < booleanImg.cols; j++)
+			if (booleanImg.pixles[i][j] == NOT_FOUND)
+				return TRUE;
+	return FALSE;
+}
+
+static imgPos* findTmpMin(grayImage img, grayImage booleanImg) {
+	imgPos* res;
+	res = (imgPos*)malloc(sizeof(imgPos));
+	checkMalloc(res);
+	int i, j, min;
+	min = MAX_VALUE; 
+	for (i = 0; i < img.rows; i++) {
+		for (j = 0; j < img.cols; j++)
+			if ((booleanImg.pixles[i][j] == NOT_FOUND) && img.pixles[i][j] <= min)
+			{
+				min = img.pixles[i][j];
+				(*res)[0] = i;
+				(*res)[1] = j;
+			}
+	}
+	return res;
+}
+
+static void booleanImageInitialization(grayImage* img, grayImage* booleanImage)
+{
+	booleanImage->cols = img->cols;
+	booleanImage->rows = img->rows;
+	initImage(booleanImage);
+	setMatrixValuesToZero(booleanImage);
 }
 
 
 
-
+/*--------------------------------------------------------------solution to q2 end*/
 
 
 /*--------------------------------------------------------------solution to q3 start*/
@@ -201,18 +337,17 @@ grayImage* colorSegments(grayImage* img, imgPosCell** segments, unsigned int siz
 {
 	unsigned int i;
 	unsigned char segmentColor;
-	imgPosCell* currImgPosCell;
 	grayImage* coloredImage = (grayImage*)malloc(sizeof(grayImage));
 	checkMalloc(coloredImage); // free malloc?
 	coloredImage->cols = img->cols;
 	coloredImage->rows = img->rows;
 	initImage(coloredImage);
-	printImage(*coloredImage);//TODO REMOVE THIS LINE - this is for testing only
 	for (i = 0; i < size; i++)
 	{
 		segmentColor = getShadeOfGray(i, size);
-		colorSingleSegment(coloredImage, *segments, segmentColor);
+		colorSingleSegment(coloredImage, segments[i], segmentColor);
 	}
+	printImage(*coloredImage);
 	return coloredImage;
 }
 

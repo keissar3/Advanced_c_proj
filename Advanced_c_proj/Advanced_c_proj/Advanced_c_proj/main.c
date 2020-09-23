@@ -7,7 +7,7 @@
 void main() {
 
 	grayImage testimage; /*creating a test image*/
-	testimage.cols = testimage.rows = 10; /* a four by four matrix with random numbers with low value for debugging purposes*/
+	testimage.cols = testimage.rows = 5; /* a four by four matrix with random numbers with low value for debugging purposes*/
 	initImage(&testimage);
 	insertRandomValues(&testimage);
 	printImage(testimage);
@@ -22,18 +22,17 @@ void main() {
 	Segment* test = findSingleSegment(&testimage, kernel,threshold);
 	//TODO create a func to free 'test' -freeSegment func
 
-	//testing q1
+	//testing q1 end
+
+
+	/*testing q2*/
+	imgPosCell** segments;
+	int n = findAllSegments(&testimage, threshold, &segments);
+	/*testing q2 end*/
 
 	/*-----testing q3 start - seems to be working :)*/
-	/*imgPosCell *testimgposarray[1];
-	testimgposarray[0] = (imgPosCell*)malloc(sizeof(imgPosCell));
-	testimgposarray[0]->position[0] = 0;
-	testimgposarray[0]->position[1] = 3;
-	testimgposarray[0]->next = (imgPosCell*)malloc(sizeof(imgPosCell));
-	testimgposarray[0]->next->position[0] = 1;
-	testimgposarray[0]->next->position[1] = 3;
-	testimgposarray[0]->next->next = NULL;
-	printImage(*(colorSegments(&testimage,testimgposarray ,1)));*/
+
+	printImage(*(colorSegments(&testimage, segments,n)));
 	/*-----testing q3 end*/
 
 

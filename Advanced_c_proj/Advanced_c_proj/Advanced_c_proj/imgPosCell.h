@@ -8,3 +8,7 @@ typedef struct _imgPosCell { /*linked list to store all pixel's locations in a s
 
 /***** FUNCTION PROTOTYPES *****/
 
+imgPosCell* creatImgPosCellNode(imgPos positionToAdd);
+imgPosCell* findPlaceToInsert(imgPosCell* list, imgPos position);
+void addToBeginningOfList(imgPosCell** list, imgPosCell* node_to_add);
+void addToInnerPlaceInList(imgPosCell* prev, imgPosCell* node_to_add);
