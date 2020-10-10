@@ -39,6 +39,16 @@ static colorSingleSegment(grayImage* imgToColor, imgPosCell* currImgPosCell, uns
 /*q3 prototypes end---------------------  */
 
 
+/*q4 prototypes start--------------------- */
+static char* getLineFromPGM(FILE* fptr_in);/*gets a non commnet line from pgm file*/
+static void doubleStringSize(char** string, int* size);/*double the allocated size for this string*/
+static void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color);/*reads pgm info, if invalid will exit program*/
+/*q4 prototypes end---------------------  */
+
+/*q5 prototypes start---------------------*/
+static int getCompressedValue(int num, int reduced_gray_level);
+/*q5 prototypes end---------------------  */
+
 
 /***** Function Implementation *****/
 
@@ -53,8 +63,6 @@ void initImage(grayImage* img)
 		(img->pixles)[i] = (unsigned char*)malloc(img->cols * sizeof(unsigned char));
 		checkMalloc((img->pixles)[i]);
 	}
-
-
 }
 
 void printImage(grayImage img)/*printing an image for testing puposes*/
@@ -65,7 +73,7 @@ void printImage(grayImage img)/*printing an image for testing puposes*/
 	for (i = 0; i < img.rows; i++)
 	{
 		for (j = 0; j < img.cols; j++)
-			printf("%4d ", img.pixles[i][j]);
+			printf("%3d ", img.pixles[i][j]);
 		putchar('\n');
 	}
 	printf("_______________________________________________________________________________\n\n");
@@ -104,12 +112,7 @@ void freeImg(grayImage** img) {
 
 
 
-
-
-
 /*--------------------------------------------------------------solution to q1 start*/
-
-
 
 
 
@@ -254,7 +257,7 @@ static void insertSegmentToList(Segment** seg_arr, int seg_arr_size, imgPosCell*
 		if (seg_arr[i]->root != NULL) {
 			insertSegmentToListAux(seg_arr[i]->root, &((*segments)[i]));
 		}
-	
+
 	}
 }
 
@@ -310,7 +313,7 @@ static imgPos* findTmpMin(grayImage img, grayImage booleanImg) {
 	res = (imgPos*)malloc(sizeof(imgPos));
 	checkMalloc(res);
 	int i, j, min;
-	min = MAX_VALUE; 
+	min = MAX_VALUE;
 	for (i = 0; i < img.rows; i++) {
 		for (j = 0; j < img.cols; j++)
 			if ((booleanImg.pixles[i][j] == NOT_FOUND) && img.pixles[i][j] <= min)
@@ -371,7 +374,7 @@ static unsigned char getShadeOfGray(int i, int numberOfSegments)
 
 /*--------------------------------------------------------------solution to q4 Start*/
 
-void doubleStringSize(char** string, int* size)
+static void doubleStringSize(char** string, int* size)
 {
 	*size = (*size) * 2 + 1;
 	*string = (char*)realloc(*string, (*size) * sizeof(char));
@@ -379,7 +382,7 @@ void doubleStringSize(char** string, int* size)
 
 }
 
-char* getLineFromPGM(FILE* fptr_in)
+static char* getLineFromPGM(FILE* fptr_in)
 {
 	BOOL lineWasComment = FALSE;
 	char* line_read = (char*)malloc(sizeof(char) * 0);
@@ -444,7 +447,7 @@ grayImage* readPGM(char* fname)
 }
 
 
-void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color)
+static void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color)
 {
 	char* temp_line;
 	temp_line = getLineFromPGM(fptr_in);
@@ -471,3 +474,122 @@ void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color)
 	free(temp_line);
 }
 /*--------------------------------------------------------------solution to q4 end*/
+
+
+/*--------------------------------------------------------------solution to q5 Start*/
+void saveCompressed(char* file_name, grayImage* image, unsigned char reduced_gray_levels) {
+	int bitsPerPixel = (int)log2(reduced_gray_levels), i, j, space_left_in_buffer = 8, new_remainder = 0, old_remainder = 0;
+
+	FILE* fout = fopen(file_name, "wb");
+	checkFileOpen(fout);
+	fwrite(&(image->rows), sizeof(unsigned short), 1, fout); //writing num of rows to file
+	fwrite(&(image->cols), sizeof(unsigned short), 1, fout); //writing num of cols to file
+	fwrite(&reduced_gray_levels, sizeof(unsigned char), 1, fout); //writing reduced_gray_levels to file
+
+	unsigned char buffer = 0, curr_compressed_pixel, mask;
+	for (i = 0; i < image->rows; i++)
+	{
+		for (j = 0; j < image->cols; j++)
+		{
+			curr_compressed_pixel = getCompressedValue(image->pixles[i][j], reduced_gray_levels);
+			do
+			{
+				if (new_remainder > 0)
+				{
+					mask = curr_compressed_pixel << 8 - new_remainder;
+				}
+				else if (new_remainder == 0)
+					mask = curr_compressed_pixel << 8 - bitsPerPixel;
+
+				new_remainder = bitsPerPixel - space_left_in_buffer;
+				if (new_remainder < 0)
+					new_remainder = 0;
+				if (old_remainder < 0)
+					old_remainder = 0;
+
+				mask >>= (8 - space_left_in_buffer);
+				buffer |= (mask);
+				if (new_remainder > 0)
+					space_left_in_buffer -= (bitsPerPixel - new_remainder);
+				else if (old_remainder > 0)
+					space_left_in_buffer -= old_remainder;
+				else
+					space_left_in_buffer -= bitsPerPixel;
+
+				old_remainder = new_remainder;
+
+				if (space_left_in_buffer == 0)
+				{
+					fwrite(&buffer, sizeof(unsigned char), 1, fout);
+					space_left_in_buffer = 8;
+					buffer = 0;
+				}
+			} while (new_remainder > 0);
+
+		}
+	}
+	if (space_left_in_buffer < 8)//there is somthing left in the buffer
+		fwrite(&buffer, sizeof(unsigned char), 1, fout);
+	fclose(fout);
+}
+
+static int getCompressedValue(int num, int reduced_gray_level) {
+	return num / (256 / reduced_gray_level);
+}
+/*--------------------------------------------------------------solution to q5 end*/
+
+
+void convertCompressedImageToPGM(char* compressed_file_name, char* pgm_file_name)
+{
+	FILE* fin = fopen(compressed_file_name, "rb");
+	checkFileOpen(fin);
+	FILE* fout = fopen(pgm_file_name, "w");
+	checkFileOpen(fout);
+	unsigned short cols, rows;
+	int i, j, k;
+	unsigned char z;
+	fread(&rows, sizeof(unsigned short), 1, fin);
+	fread(&cols, sizeof(unsigned short), 1, fin);
+	fread(&z, sizeof(unsigned char), 1, fin);
+	int bitsPerPixel = (int)log2(z);
+	fprintf(fout, "p2\n");
+	fprintf(fout, "%d %d\n", cols, rows);
+	fprintf(fout, "%d\n", 255);
+	unsigned char curr = 0;
+	unsigned char buffer = 0;
+	unsigned char mask = 0x80;
+	int counter = 0;
+	fread(&curr, sizeof(unsigned char), 1, fin);
+
+	for (i = 0; i < rows; i++)
+	{
+		for (j = 0; j < cols; j++)
+		{
+			
+			while (counter < (int)bitsPerPixel)
+			{
+				if (mask == 0)
+				{
+					mask = 0x80;
+					fread(&curr, sizeof(unsigned char), 1, fin);
+				}
+				buffer = buffer << 1;
+				if ((curr & mask) > 0)
+					buffer |= 1;
+				mask >>= 1;
+				counter++;
+			}
+			counter = 0;
+			fprintf(fout, "%3d ", ((buffer + 1) * 256 / (int)z) - 1);
+			buffer = 0;
+		}
+		fprintf(fout, "\n");
+	}
+
+
+
+	fclose(fin);
+	fclose(fout);
+}
+
+/*--------------------------------------------------------------solution to q6 end*/

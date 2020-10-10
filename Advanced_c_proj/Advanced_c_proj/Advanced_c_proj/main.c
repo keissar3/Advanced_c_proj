@@ -12,7 +12,7 @@ void main() {
 	insertRandomValues(&testimage);
 	printImage(testimage);
 
-
+	//
 
 	//testing q1
 	imgPos kernel;
@@ -32,26 +32,24 @@ void main() {
 
 	/*-----testing q3 start - seems to be working :)*/
 	//	printImage(*(colorSegments(&testimage, segments,n)));
+	// TODO free colorSegments(&testimage, segments,n)
 	/*-----testing q3 end*/
 
 	/*testing q4*/
-	grayImage* uploaded_image = readPGM("hi.pgm");
+	grayImage* uploaded_image = readPGM("line.pgm");
 	//printImage(*uploaded_image);
 
 
 
+	/*testing q5*/
 	imgPosCell** segments;
 	int n = findAllSegments(uploaded_image, threshold, &segments);
-	printImage(*(colorSegments(uploaded_image, segments, n)));
+	printImage(*uploaded_image);
+	int z = 32;
+	saveCompressed("res.bin", uploaded_image, z);
+	convertCompressedImageToPGM("res.bin", "yay.pgm");
+
 	freeImg(&uploaded_image);
-	/*testing q4*/
-
-
-
-
-
-
-
 	
 	freeImgPosCell(&segments,n);
 	freePixels(&testimage);
