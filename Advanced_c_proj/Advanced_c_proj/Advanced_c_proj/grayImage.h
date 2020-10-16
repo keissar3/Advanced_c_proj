@@ -22,9 +22,11 @@ void initImage(grayImage* img);/*Allocate a matrix to store all pixels of an ima
 void printImage(grayImage img);/*printing an image for testing*/
 void insertRandomValues(grayImage* img);/*insert random values to the entire matrix for testing*/
 void freePixels(grayImage* img); /*gets a pointer to an img and frees the pixels arr in img */
-void freeImg(grayImage** img); /*gets a pointer to an img and frees the pixels arr in img */
-Segment* findSingleSegment(grayImage* img, imgPos kernel, unsigned char threshold);//todo add desctiption
- /*q1 end*/
+void freeImg(grayImage* img); /*gets a pointer to an img and frees the pixels arr in img */
+Segment* findSingleSegment(grayImage* img, imgPos kernel, unsigned char threshold);/*gets an inamge pointer and return an pointer to a segment*/
+void free_segment_Array(imgPosCell** list, unsigned int size);/* free segment array*/
+void freeSegment_array(Segment** helper, int numOfSegments);/*free segments array*/
+/*q1 end*/
 
 
 /* start q2*/

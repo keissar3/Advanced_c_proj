@@ -4,54 +4,56 @@
 #include "segment.h"
 #include "utility.h"
 #include <stdlib.h>
-void main() {
 
+#define Q1
+#define Q2
+#define Q3
+#define Q4
+#define Q5
+#define Q6
+
+void main() {
+#ifdef Q1
 	grayImage testimage; /*creating a test image*/
-	testimage.cols = testimage.rows = 5; /* a four by four matrix with random numbers with low value for debugging purposes*/
+	testimage.cols = testimage.rows = 5; /* a five by five matrix with random numbers with low value for debugging purposes*/
 	initImage(&testimage);
 	insertRandomValues(&testimage);
-	printImage(testimage);
-
-	//
-
-	//testing q1
 	imgPos kernel;
 	kernel[0] = 2;
 	kernel[1] = 2;
 	unsigned char threshold = 0;
 	Segment* test = findSingleSegment(&testimage, kernel,threshold);
-	//TODO create a func to free 'test' -freeSegment func
+#endif 
 
-	//testing q1 end
-
-
-	/*testing q2*/
-	//imgPosCell** segments;
-	//int n = findAllSegments(&testimage, threshold, &segments);
-	/*testing q2 end*/
-
-	/*-----testing q3 start - seems to be working :)*/
-	//	printImage(*(colorSegments(&testimage, segments,n)));
-	// TODO free colorSegments(&testimage, segments,n)
-	/*-----testing q3 end*/
-
-	/*testing q4*/
-	grayImage* uploaded_image = readPGM("line.pgm");
-	//printImage(*uploaded_image);
-
-
-
-	/*testing q5*/
+#ifdef Q2
 	imgPosCell** segments;
-	int n = findAllSegments(uploaded_image, threshold, &segments);
-	printImage(*uploaded_image);
-	int z = 32;
-	saveCompressed("res.bin", uploaded_image, z);
-	convertCompressedImageToPGM("res.bin", "yay.pgm");
+	int size = findAllSegments(&testimage, threshold, &segments);
+#endif
 
-	freeImg(&uploaded_image);
+#ifdef Q3
+	printImage(*(colorSegments(&testimage, segments, size)));
+	free_segment_Array(segments,size);
+	freeSegment(test);
+#endif
 	
-	freeImgPosCell(&segments,n);
+	
+#ifdef Q4
+	grayImage* uploaded_image = readPGM("line.pgm");
+#endif
+
+#ifdef Q5
+	imgPosCell** segmentsUploadedImage;
+	int n = findAllSegments(uploaded_image, threshold, &segmentsUploadedImage);
+	int z = 32;
+	saveCompressed("compressedImage.bin", uploaded_image, z);
+#endif
+
+#ifdef Q6
+	convertCompressedImageToPGM("compressedImage.bin", "decompressImage.pgm");
+#endif
+		
+	freeImgPosCell(&segmentsUploadedImage,n);
 	freePixels(&testimage);
+	freeImg(uploaded_image);
 
 }

@@ -14,11 +14,13 @@
 /*q1 prototypes start--------------------- */
 static void setMatrixValuesToZero(grayImage* img);/*set the entire matrix values to zero*/
 static void markPixelInBooleanImage(grayImage* booleanImage, imgPos positionToMark);/*Mark a pixel as FOUND in the boolean image*/
-static void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayImage img, unsigned char kernelColor, unsigned char threshold, int* treeCount);//TODO WRITE DESCRIPTION
-static void getKernelSegment(Segment* seg, grayImage* booleanImage, grayImage img, imgPos kernel, unsigned char kernelColor, unsigned char threshold);//TODO WRITE DESCRIPTION
+static void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayImage img, unsigned char kernelColor, unsigned char threshold, int* treeCount);/*rec func that adds all segment info into a tree node */
+static void getKernelSegment(Segment* seg, grayImage* booleanImage, grayImage img, imgPos kernel, unsigned char kernelColor, unsigned char threshold);/*helper func to findSingleSegment, this */
 static BOOL isPixelInTree(grayImage booleanImage, imgPos positionToCheck);/*checks if a pixel was is already found within tree.*/
 static BOOL isColorWithInThreshold(unsigned char kerenelColor, unsigned char colorToCheck, unsigned char threshold);/*check if target color is within threshold range from kernel color*/
 static BOOL isPixelInImgBoundaries(grayImage img, imgPos positionToCheck);/*check if a position is within boundaries of the image*/
+static void freeList(imgPosCell* lst_head);/*free list */
+static void freeTree(treeNode* root);/*free tree*/
 /*q1 prototypes end--------------------- */
 
 /*q2 prototypes start---------------------*/
@@ -47,8 +49,14 @@ static void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color);/
 
 /*q5 prototypes start---------------------*/
 static int getCompressedValue(int num, int reduced_gray_level);
+static void writeBitsToFile(grayImage* image, unsigned char reduced_gray_levels, FILE* fout);
 /*q5 prototypes end---------------------  */
 
+/*q6 prototypes start---------------------*/
+static void readInfoFromFile(unsigned short* rows, unsigned short* cols, unsigned char* z, FILE* fin);
+static printInfoToFile(int cols, int rows, FILE* fout);
+static void compressIntoFile(FILE* fin, FILE* fout, unsigned short rows, unsigned short cols, int bitsPerPixel, unsigned char z);
+/*q6 prototypes end---------------------  */
 
 /***** Function Implementation *****/
 
@@ -97,32 +105,90 @@ void freePixels(grayImage* img) {
 		free((img->pixles[i]));
 	}
 	free(img->pixles);
+
 }
 
-void freeImg(grayImage** img) {
+void freeImg(grayImage* img) {
 	int i;
-	for (i = 0; i < (*img)->rows; i++)
+	for (i = 0; i < img->rows; i++)
 	{
-		free(((*img)->pixles[i]));
+		free((img->pixles[i]));
 	}
-	free((*img)->pixles);
-	free(*img);
+	free(img->pixles);
+	free(img);
+}
+
+//--------------------------------------------------------------
+void freeSegment(Segment* seg) 
+{
+	freeTree(seg->root);
+	free(seg);
+}
+void freeSegment_array(Segment** helper, int numOfSegments)
+{
+	int i ;
+	for (i = 0; i < numOfSegments; i++)
+		freeSegment(helper[i]);
+	free(helper);
+}
+
+static void freeTree(treeNode* root) 
+{
+	if (root == NULL)
+		return;
+	int i;
+	for (i = 0; root->similar_neighbors[i]; i++); 
+
+	for (; i >= 0; i--)
+	{
+		freeTree(root->similar_neighbors[i]);
+	}
+	free(root->similar_neighbors);
+	free(root);
+}
+
+void free_segment_Array(imgPosCell** list, unsigned int size)
+{
+	/* free List: (each node is a Segment so wee need to 'freeSegment' the nodes) */
+	unsigned int i;
+	for (i = 0; i < size; i++) {
+		freeList(list[i]);
+	}
+	free(list);
+}
+
+static void freeList(imgPosCell* lst_head)
+{
+	/* need to free ALL the list from here */
+	imgPosCell* currNode = NULL;
+	imgPosCell* prevNode = NULL; /* remember the previous Node */
+
+	if (lst_head) { /* only if the List isn't empty */
+		currNode = lst_head->next;
+		for (prevNode = lst_head; currNode; currNode = currNode->next) {
+			free(prevNode);/* free the currNode itself */
+			prevNode = currNode;
+		}
+		free(prevNode);/* free the last prevNode */
+	}
+	else return; /* the list is already empty */
 }
 
 
+
+//--------------------------------------------------------------
 
 
 /*--------------------------------------------------------------solution to q1 start*/
 
 
 
-//NOTES ! TODO - AFTER Q1 IF FULLY SOLVED MOVE THE FUNCTION AND THEIR DECLERATION TO THE BEST MATCH .C AND .H FILES .
 Segment* findSingleSegment(grayImage* img, imgPos kernel, unsigned char threshold)
 {
 	unsigned char kernelColor;
 	kernelColor = img->pixles[kernel[0]][kernel[1]];
 	grayImage booleanImage;
-	Segment* res = (Segment*)malloc(sizeof(Segment)); //free in main, because main calls this func and gets back 'res'
+	Segment* res = (Segment*)malloc(sizeof(Segment)); 
 	checkMalloc(res);
 	booleanImageInitialization(img, &booleanImage);
 	getKernelSegment(res, &booleanImage, *img, kernel, kernelColor, threshold);
@@ -133,7 +199,7 @@ Segment* findSingleSegment(grayImage* img, imgPos kernel, unsigned char threshol
 Segment* findSingleSegmentByTable(grayImage* img, imgPos kernel, unsigned char threshold, grayImage* booleanImage) {
 	unsigned char kernelColor;
 	kernelColor = img->pixles[kernel[0]][kernel[1]];
-	Segment* res = (Segment*)malloc(sizeof(Segment)); //free
+	Segment* res = (Segment*)malloc(sizeof(Segment)); 
 	checkMalloc(res);
 	getKernelSegment(res, booleanImage, *img, kernel, kernelColor, threshold);
 	return res;
@@ -181,7 +247,6 @@ static void getKernelSegment(Segment* seg, grayImage* booleanImage, grayImage im
 	int treeCount = 0;
 	seg->root = createTreeNode(kernel);
 	markPixelInBooleanImage(booleanImage, kernel);
-	printf("(%d,%d) at color (%d) is added to tree \n", seg->root->position[0], seg->root->position[1], img.pixles[seg->root->position[0]][seg->root->position[1]]); //TODO Delete this line
 	getKernelSegmentAUX(seg->root, booleanImage, img, kernelColor, threshold, &treeCount);
 	seg->size = treeCount;
 
@@ -201,7 +266,6 @@ static void getKernelSegmentAUX(treeNode* root, grayImage* booleanImage, grayIma
 				if (isPixelInTree(*booleanImage, currPos) == NOT_FOUND)
 					if (isColorWithInThreshold(kernelColor, img.pixles[currPos[0]][currPos[1]], threshold))
 					{
-						printf("(%d,%d) at color (%d) is added to tree \n", currPos[0], currPos[1], img.pixles[currPos[0]][currPos[1]]); //TODO Delete this line
 						root->similar_neighbors[rootNeighbors] = createTreeNode(currPos);
 						markPixelInBooleanImage(booleanImage, currPos);
 						rootNeighbors++;
@@ -243,7 +307,9 @@ unsigned int findAllSegments(grayImage* img, unsigned char threshold, imgPosCell
 	qsort(helper, numOfSegments, sizeof(Segment*), (&compare)); /*sorts the array of pointers to segments*/
 	insertSegmentToList(helper, numOfSegments, segments);
 	freePixels(&booleanImage);
-	//TODO SEGEMNTS AND THEIR CONTENT IN HELPER NEED TO BE FREE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	printf("fds");
+	freeSegment_array(helper, numOfSegments); 
+	printf("fds");
 	return numOfSegments;
 }
 
@@ -466,7 +532,7 @@ static void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color)
 	}
 	free(temp_line);
 	temp_line = getLineFromPGM(fptr_in);
-	if (sscanf(temp_line, "%d", max_color) != 1)//TODO /* what is the use of this value */
+	if (sscanf(temp_line, "%d", max_color) != 1)
 	{
 		printf("MAX color reading failed ");
 		exit(MAX_COLOR_INCORRECT);
@@ -478,15 +544,19 @@ static void read_PGM_info(FILE* fptr_in, int* rows, int* cols, int* max_color)
 
 /*--------------------------------------------------------------solution to q5 Start*/
 void saveCompressed(char* file_name, grayImage* image, unsigned char reduced_gray_levels) {
-	int bitsPerPixel = (int)log2(reduced_gray_levels), i, j, space_left_in_buffer = 8, new_remainder = 0, old_remainder = 0;
-
 	FILE* fout = fopen(file_name, "wb");
 	checkFileOpen(fout);
 	fwrite(&(image->rows), sizeof(unsigned short), 1, fout); //writing num of rows to file
 	fwrite(&(image->cols), sizeof(unsigned short), 1, fout); //writing num of cols to file
 	fwrite(&reduced_gray_levels, sizeof(unsigned char), 1, fout); //writing reduced_gray_levels to file
+	writeBitsToFile(image, reduced_gray_levels, fout);
+	fclose(fout);
+}
 
+static void writeBitsToFile(grayImage* image, unsigned char reduced_gray_levels, FILE* fout)
+{
 	unsigned char buffer = 0, curr_compressed_pixel, mask;
+	int i, j, space_left_in_buffer = 8, new_remainder = 0, old_remainder = 0, bitsPerPixel = (int)log2(reduced_gray_levels);
 	for (i = 0; i < image->rows; i++)
 	{
 		for (j = 0; j < image->cols; j++)
@@ -525,12 +595,10 @@ void saveCompressed(char* file_name, grayImage* image, unsigned char reduced_gra
 					buffer = 0;
 				}
 			} while (new_remainder > 0);
-
 		}
 	}
 	if (space_left_in_buffer < 8)//there is somthing left in the buffer
 		fwrite(&buffer, sizeof(unsigned char), 1, fout);
-	fclose(fout);
 }
 
 static int getCompressedValue(int num, int reduced_gray_level) {
@@ -546,26 +614,25 @@ void convertCompressedImageToPGM(char* compressed_file_name, char* pgm_file_name
 	FILE* fout = fopen(pgm_file_name, "w");
 	checkFileOpen(fout);
 	unsigned short cols, rows;
-	int i, j, k;
 	unsigned char z;
-	fread(&rows, sizeof(unsigned short), 1, fin);
-	fread(&cols, sizeof(unsigned short), 1, fin);
-	fread(&z, sizeof(unsigned char), 1, fin);
+	readInfoFromFile(&rows, &cols, &z, fin);
 	int bitsPerPixel = (int)log2(z);
-	fprintf(fout, "p2\n");
-	fprintf(fout, "%d %d\n", cols, rows);
-	fprintf(fout, "%d\n", 255);
-	unsigned char curr = 0;
-	unsigned char buffer = 0;
-	unsigned char mask = 0x80;
-	int counter = 0;
-	fread(&curr, sizeof(unsigned char), 1, fin);
+	printInfoToFile(cols, rows, fout);
+	compressIntoFile(fin, fout, rows, cols, bitsPerPixel, z);
+	fclose(fin);
+	fclose(fout);
+}
 
+static void compressIntoFile(FILE* fin, FILE* fout, unsigned short rows, unsigned short cols, int bitsPerPixel, unsigned char z) {
+	unsigned char curr, buffer, mask;
+	int counter = 0, i, j;
+	curr = buffer = 0;
+	mask = 0x80;
+	fread(&curr, sizeof(unsigned char), 1, fin);
 	for (i = 0; i < rows; i++)
 	{
 		for (j = 0; j < cols; j++)
 		{
-			
 			while (counter < (int)bitsPerPixel)
 			{
 				if (mask == 0)
@@ -585,11 +652,17 @@ void convertCompressedImageToPGM(char* compressed_file_name, char* pgm_file_name
 		}
 		fprintf(fout, "\n");
 	}
-
-
-
-	fclose(fin);
-	fclose(fout);
 }
 
+static void readInfoFromFile(unsigned short* rows, unsigned short* cols, unsigned char* z, FILE* fin) {
+	fread(rows, sizeof(unsigned short), 1, fin);
+	fread(cols, sizeof(unsigned short), 1, fin);
+	fread(z, sizeof(unsigned char), 1, fin);
+}
+
+static printInfoToFile(int cols, int rows, FILE* fout) {
+	fprintf(fout, "P2\n");
+	fprintf(fout, "%d %d\n", cols, rows);
+	fprintf(fout, "%d\n", 255);
+}
 /*--------------------------------------------------------------solution to q6 end*/
